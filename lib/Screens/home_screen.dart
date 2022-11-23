@@ -3,9 +3,11 @@
 import 'package:app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/ui/firebase_animated_list.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 // ignore: unnecessary_import
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../Utils/colors.utils.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -29,6 +31,35 @@ final ref = FirebaseDatabase.instance.ref('List');
 ///
 ///
 ////
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'For ESP Notifications', 'ESP Turned on',
+    importance: Importance(1), playSound: true);
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> _FirebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('Notification for the Esps');
+}
+
+////////////////////////////////////////////////////////
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_FirebaseMessagingBackgroundHandler);
+
+  await FlutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true, badge: true, sound: true);
+
+  runApp(MyApp());
+}
+
 ///
 ///
 //////////////
@@ -50,6 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    var index = 0;
+    List<String> strArr = [];
     return Scaffold(
         appBar: AppBar(
           title: Text('ESP APP'),
@@ -89,7 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ///CODE CHUNK
             ])),
             // ignore: unnecessary_new
-
             child: new Column(children: [
               Text('List of ESPs Connected',
                   style: const TextStyle(
@@ -98,13 +130,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: FirebaseAnimatedList(
                     query: ref,
                     itemBuilder: (context, snapshot, animation, index) {
+                      index = index + 1;
+                      if ("${snapshot.child('device').value.toString()}" ==
+                          '0') {
+                        strArr.add("$index");
+                      }
                       return ListTile(
-                        title: Text(snapshot.child('device').value.toString(),
-                            style: const TextStyle(fontSize: 20)),
+                        title: ElevatedButton.icon(
+                          onPressed: () {
+                            print(strArr);
+                          },
+                          icon: Icon(
+                            // <-- Icon
+                            Icons.switch_left,
+                            size: 24.0,
+                          ),
+                          label: Text(
+                              "ESP $index -------> ${snapshot.child('device').value.toString()} ",
+                              style: const TextStyle(fontSize: 20)), // <-- Text
+                        ),
                         textColor: Colors.black,
                       );
                     }),
               ),
+
               // Expanded(
               //   child: signInSignUpButton2(context, true, () {
               // Navigator.push(context,
