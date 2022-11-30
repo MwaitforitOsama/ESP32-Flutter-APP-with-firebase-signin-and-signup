@@ -2,10 +2,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'Screens/signin_screen.dart';
 import 'package:flutter_switch/flutter_switch.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() async {
   await WidgetsFlutterBinding.ensureInitialized();
-  Firebase.initializeApp();
+  await Firebase.initializeApp();
+  print("TOKEN IS");
+  print(await FirebaseMessaging.instance.getToken());
   runApp(const MyApp());
 }
 

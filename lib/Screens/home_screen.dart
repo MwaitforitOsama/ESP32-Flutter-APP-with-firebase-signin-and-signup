@@ -23,7 +23,12 @@ import 'package:firebase_core/firebase_core.dart';
 ///
 ///
 final auth = FirebaseAuth.instance;
-final ref = FirebaseDatabase.instance.ref('List');
+final ref = FirebaseDatabase.instance.ref('fcm-token');
+final ref_users = FirebaseDatabase.instance
+    .ref('fcm-token')
+    .child('Link')
+    .child('')
+    .toString();
 ////////////////
 ////////////////
 ///
@@ -44,21 +49,6 @@ Future<void> _FirebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 ////////////////////////////////////////////////////////
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_FirebaseMessagingBackgroundHandler);
-
-  await FlutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
-
-  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true, badge: true, sound: true);
-
-  runApp(MyApp());
-}
 
 ///
 ///
@@ -82,7 +72,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     var index = 0;
+    print(ref_users.toString());
     List<String> strArr = [];
+    print(strArr);
+
     return Scaffold(
         appBar: AppBar(
           title: Text('ESP APP'),
@@ -131,10 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     query: ref,
                     itemBuilder: (context, snapshot, animation, index) {
                       index = index + 1;
-                      if ("${snapshot.child('device').value.toString()}" ==
-                          '0') {
-                        strArr.add("$index");
-                      }
+
                       return ListTile(
                         title: ElevatedButton.icon(
                           onPressed: () {
@@ -146,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 24.0,
                           ),
                           label: Text(
-                              "ESP $index -------> ${snapshot.child('device').value.toString()} ",
+                              "ESP $index -------> ${snapshot.child('Users').value.toString()} ",
                               style: const TextStyle(fontSize: 20)), // <-- Text
                         ),
                         textColor: Colors.black,

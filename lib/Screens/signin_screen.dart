@@ -27,8 +27,9 @@ class SigninScreen extends StatefulWidget {
 }
 
 class _SigninScreenState extends State<SigninScreen> {
-  TextEditingController _passwordTextController = TextEditingController();
   TextEditingController _emailTextController = TextEditingController();
+  TextEditingController _passwordTextController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
