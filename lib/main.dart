@@ -19,11 +19,14 @@ import '../Utils/colors.utils.dart';
 import 'package:firebase_database/firebase_database.dart';
 // ignore: unused_import
 import 'package:firebase_core/firebase_core.dart';
+import 'package:app/reusable_widget/firestore_data.dart';
+import 'package:get/get.dart';
 
 void main() async {
   await WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   var my_fcm_toke = await FirebaseMessaging.instance.getToken();
+  final DataController controller = Get.put(DataController());
   var users_collection = await FirebaseFirestore.instance
       .collection("fcm-token")
       .doc("User")

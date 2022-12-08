@@ -13,12 +13,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart';
 
 import '../Utils/colors.utils.dart';
 import 'package:firebase_database/firebase_database.dart';
 // ignore: unused_import
 import 'package:firebase_core/firebase_core.dart';
 import 'package:app/main.dart';
+import 'package:app/reusable_widget/firestore_data.dart';
+import 'package:get/get.dart';
 
 ///////
 ///////////
@@ -39,7 +42,7 @@ final ref = FirebaseDatabase.instance.ref('Link');
 ///
 ///
 ///
-////
+
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'For ESP Notifications', 'ESP Turned on',
     importance: Importance(1), playSound: true);
@@ -82,12 +85,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final DataController controller_temp = Get.find();
     var index = 0;
     bool first_time = true;
     Map randata_temp = {};
     List<String> strArr = [];
-    bool switch_value = true;
-
     return Scaffold(
         appBar: AppBar(
           title: Text('ESP APP'),
@@ -132,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text('List of ESPs Connected',
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 25)),
+
               new Flexible(
                   child: FirebaseAnimatedList(
                       query: ref,
@@ -141,31 +144,47 @@ class _HomeScreenState extends State<HomeScreen> {
                         mydata['key'] = snapshot.key;
                         var text_to_display = mydata.keys.toList().first;
                         var color_to_chose = null;
-                        var randata = null;
-                        FirebaseFirestore.instance
-                            .collection('fcm-token')
-                            .doc('User')
-                            .get()
-                            .then((DocumentSnapshot documentSnapshot) {
-                          if (documentSnapshot.exists) {
-                            print('Document data: ${documentSnapshot.data()}');
-                            FirebaseMessaging.instance.getToken().then((value) {
-                              Map randata = documentSnapshot.data() as Map;
-                              if (first_time) {
-                                randata_temp = randata[value] as Map;
-                                first_time = false;
-                              }
-                              if (!randata_temp.containsKey(text_to_display)) {
-                                randata_temp[text_to_display] = true;
-                                updateDB(value.toString(), randata_temp);
-                                sleep(Duration(seconds: 2));
-                              }
-                            });
-                          } else {
-                            print('Document does not exist on the database');
-                          }
-                        });
-                        print(text_to_display);
+                        Map randata = controller_temp.myData['myData'];
+                        if (first_time) {
+                          randata_temp =
+                              randata[controller_temp.myData['fcm_token']]
+                                  as Map;
+                          first_time = false;
+                        }
+                        print(randata_temp);
+                        if (!randata_temp.containsKey(text_to_display)) {
+                          randata_temp[text_to_display] = true;
+                          updateDB(
+                              controller_temp.myData['fcm_token'].toString(),
+                              randata_temp);
+                          sleep(Duration(seconds: 2));
+                        }
+                        // FirebaseFirestore.instance
+                        //     .collection('fcm-token')
+                        //     .doc('User')
+                        //     .get()
+                        //     .then((DocumentSnapshot documentSnapshot) {
+                        //   if (documentSnapshot.exists) {
+                        //     //print('Document data: ${documentSnapshot.data()}');
+                        //     FirebaseMessaging.instance.getToken().then((value) {
+                        //       Map randata = documentSnapshot.data() as Map;
+                        //       if (first_time) {
+                        //         randata_temp = randata[value] as Map;
+                        //         first_time = false;
+                        //       }
+                        //       if (!randata_temp.containsKey(text_to_display)) {
+                        //         randata_temp[text_to_display] = true;
+                        //         updateDB(value.toString(), randata_temp);
+                        //         sleep(Duration(seconds: 2));
+                        //       }
+                        //     });
+                        //   } else {
+                        //     print('Document does not exist on the database');
+                        //   }
+                        // });
+                        //print(text_to_display);
+                        //print(controller_temp.myData['myData']
+                        //  [controller_temp.myData['fcm_token']]);
                         if (mydata[text_to_display] == 0) {
                           color_to_chose = Colors.red;
                         } else {
@@ -175,16 +194,29 @@ class _HomeScreenState extends State<HomeScreen> {
                             title: Text(text_to_display,
                                 style: const TextStyle(fontSize: 20)),
                             subtitle: Text("This is $text_to_display"),
-                            value: switch_value,
+                            value: randata_temp[text_to_display],
                             activeColor: Color.fromARGB(255, 4, 250, 160),
                             controlAffinity: ListTileControlAffinity.leading,
                             secondary: Icon(
                               Icons.add_moderator,
                               color: color_to_chose,
                             ),
-                            onChanged: (switch_value) {
-                              switch_value = !switch_value;
+                            onChanged: (value) {
+                              setState(() {
+                                randata_temp[text_to_display] =
+                                    !randata_temp[text_to_display];
+                                updateDB(
+                                    controller_temp.myData['fcm_token']
+                                        .toString(),
+                                    randata_temp);
+                              });
                             });
+
+                        //    (bool value) {
+                        //   setState(() {
+                        //     _lights = value;
+                        //   });
+                        // },
 
                         // return new Row(
                         //   children: [
