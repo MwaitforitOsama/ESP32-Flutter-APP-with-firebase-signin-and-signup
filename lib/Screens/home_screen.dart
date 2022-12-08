@@ -1,18 +1,24 @@
 // ignore_for_file: unnecessary_new, prefer_const_constructors, duplicate_ignore
 
+import 'dart:io';
+import 'dart:io';
+
 import 'package:app/main.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 // ignore: unnecessary_import
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_switch/flutter_switch.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../Utils/colors.utils.dart';
 import 'package:firebase_database/firebase_database.dart';
 // ignore: unused_import
 import 'package:firebase_core/firebase_core.dart';
+import 'package:app/main.dart';
 
 ///////
 ///////////
@@ -23,12 +29,10 @@ import 'package:firebase_core/firebase_core.dart';
 ///
 ///
 final auth = FirebaseAuth.instance;
-final ref = FirebaseDatabase.instance.ref('fcm-token');
-final ref_users = FirebaseDatabase.instance
-    .ref('fcm-token')
-    .child('Link')
-    .child('')
-    .toString();
+final ref = FirebaseDatabase.instance.ref('Link');
+
+// final ref_users =
+//     FirebaseDatabase.instance.ref('Link').child('Link').toString();
 ////////////////
 ////////////////
 ///
@@ -46,6 +50,13 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 Future<void> _FirebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print('Notification for the Esps');
+}
+
+Future updateDB(String token, Map rand) async {
+  return await FirebaseFirestore.instance
+      .collection("fcm-token")
+      .doc("User")
+      .update({token: rand});
 }
 
 ////////////////////////////////////////////////////////
@@ -72,9 +83,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     var index = 0;
-    print(ref_users.toString());
+    bool first_time = true;
+    Map randata_temp = {};
     List<String> strArr = [];
-    print(strArr);
+    bool switch_value = true;
 
     return Scaffold(
         appBar: AppBar(
@@ -106,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 gradient: LinearGradient(colors: [
               hexStringToColor("#1E90FF"),
               hexStringToColor("#6BB6FF")
+
 /////////CODE CHUNK
               ///
               ///
@@ -115,34 +128,86 @@ class _HomeScreenState extends State<HomeScreen> {
               ///CODE CHUNK
             ])),
             // ignore: unnecessary_new
-            child: new Column(children: [
+            child: new Column(children: <Widget>[
               Text('List of ESPs Connected',
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 25)),
-              Expanded(
-                child: FirebaseAnimatedList(
-                    query: ref,
-                    itemBuilder: (context, snapshot, animation, index) {
-                      index = index + 1;
+              new Flexible(
+                  child: FirebaseAnimatedList(
+                      query: ref,
+                      itemBuilder: (context, snapshot, animation, index) {
+                        index = index + 1;
+                        Map mydata = snapshot.value as Map;
+                        mydata['key'] = snapshot.key;
+                        var text_to_display = mydata.keys.toList().first;
+                        var color_to_chose = null;
+                        var randata = null;
+                        FirebaseFirestore.instance
+                            .collection('fcm-token')
+                            .doc('User')
+                            .get()
+                            .then((DocumentSnapshot documentSnapshot) {
+                          if (documentSnapshot.exists) {
+                            print('Document data: ${documentSnapshot.data()}');
+                            FirebaseMessaging.instance.getToken().then((value) {
+                              Map randata = documentSnapshot.data() as Map;
+                              if (first_time) {
+                                randata_temp = randata[value] as Map;
+                                first_time = false;
+                              }
+                              if (!randata_temp.containsKey(text_to_display)) {
+                                randata_temp[text_to_display] = true;
+                                updateDB(value.toString(), randata_temp);
+                                sleep(Duration(seconds: 2));
+                              }
+                            });
+                          } else {
+                            print('Document does not exist on the database');
+                          }
+                        });
+                        print(text_to_display);
+                        if (mydata[text_to_display] == 0) {
+                          color_to_chose = Colors.red;
+                        } else {
+                          color_to_chose = Colors.green;
+                        }
+                        return new SwitchListTile(
+                            title: Text(text_to_display,
+                                style: const TextStyle(fontSize: 20)),
+                            subtitle: Text("This is $text_to_display"),
+                            value: switch_value,
+                            activeColor: Color.fromARGB(255, 4, 250, 160),
+                            controlAffinity: ListTileControlAffinity.leading,
+                            secondary: Icon(
+                              Icons.add_moderator,
+                              color: color_to_chose,
+                            ),
+                            onChanged: (switch_value) {
+                              switch_value = !switch_value;
+                            });
 
-                      return ListTile(
-                        title: ElevatedButton.icon(
-                          onPressed: () {
-                            print(strArr);
-                          },
-                          icon: Icon(
-                            // <-- Icon
-                            Icons.switch_left,
-                            size: 24.0,
-                          ),
-                          label: Text(
-                              "ESP $index -------> ${snapshot.child('Users').value.toString()} ",
-                              style: const TextStyle(fontSize: 20)), // <-- Text
-                        ),
-                        textColor: Colors.black,
-                      );
-                    }),
-              ),
+                        // return new Row(
+                        //   children: [
+                        //     Text(mydata.keys.toList().first,
+                        //         style: const TextStyle(fontSize: 20)),
+                        //     Switch(
+                        //         value: false,
+                        //         onChanged: (value) {
+                        //           print("VALUE : $value");
+                        //         })
+                        //   ],
+                        // );
+                      }))
+
+              //
+
+              /////
+
+              /////
+
+              //
+
+              // Expanded Onwards
 
               // Expanded(
               //   child: signInSignUpButton2(context, true, () {
@@ -160,6 +225,30 @@ class _HomeScreenState extends State<HomeScreen> {
     ///Ends HERE///
   }
 }
+
+
+
+
+
+
+
+
+//  title: TextButton.icon(
+//                           onPressed: () {
+//                             print("Hello");
+//                           },
+//                           icon: Icon(
+//                             // <-- Icon
+//                             Icons.toggle_on,
+//                             size: 24.0,
+//                           ),
+//                           label: Text(snapshot.value.toString(),
+//                               style: const TextStyle(fontSize: 20)), // <-- Text
+//                         ),
+//                         textColor: Colors.black,
+
+
+
 
 /////
 ///
